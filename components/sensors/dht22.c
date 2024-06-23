@@ -10,8 +10,6 @@ _Noreturn void dht22_task(void *pvParameters) {
     float temperature = 0, humidity = 0;
 
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(CONFIG_SENSORS_DHT22_SLEEP_PERIOD * 60 * 1000));
-
         if (dht_read_float_data(DHT_TYPE_AM2301, CONFIG_SENSORS_DHT22_PIN, &humidity, &temperature) != ESP_OK)
         {
             ESP_LOGW(TAG, "Temperature/humidity reading failed");
@@ -27,5 +25,7 @@ _Noreturn void dht22_task(void *pvParameters) {
 
             xSemaphoreGive(data_mutex);
         }
+
+        vTaskDelay(pdMS_TO_TICKS(CONFIG_SENSORS_DHT22_SLEEP_PERIOD * 60 * 1000));
     }
 }

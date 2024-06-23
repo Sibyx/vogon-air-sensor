@@ -18,16 +18,6 @@ const uint8_t QUERY_MODE = 0x01;
 const uint8_t WORK_STATE = 0x01;
 const uint8_t SLEEP_STATE = 0x00;
 
-static void print_hex(const uint8_t *data, size_t length)
-{
-    printf("Received data in hex: ");
-    for (size_t i = 0; i < length; ++i)
-    {
-        printf("%02X ", data[i]);
-    }
-    printf("\n");
-}
-
 static esp_err_t sds011_send_command(const uint8_t payload[13], char *response) {
     int len;
     uint8_t command[] = {
@@ -45,7 +35,7 @@ static esp_err_t sds011_send_command(const uint8_t payload[13], char *response) 
     command[17] = (uint8_t)(checksum & 0xFF);
 
     uart_write_bytes(UART_NUM_2, (const char *)command, 19);
-    ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_2, pdMS_TO_TICKS(100)));
+    ESP_ERROR_CHECK(uart_wait_tx_done(UART_NUM_2, pdMS_TO_TICKS(250)));
     len = uart_read_bytes(UART_NUM_2, response, 10, pdMS_TO_TICKS(250));
 
     if (len != 10) {
@@ -118,6 +108,10 @@ static esp_err_t sds011_write_state(char *buffer, uint8_t state) {
     return ESP_OK;
 }
 
+/**
+ * Protocol description: https://sensebox.kaufen/assets/datenblatt/SDS011_Control_Protocol.pdf
+ * @param pvParameters
+ */
 void sds011_task(void *pvParameters) {
     const uart_config_t uart_config = {
             .baud_rate = 9600,
@@ -136,6 +130,9 @@ void sds011_task(void *pvParameters) {
     char data[UART_BUFFER];
     memset(&data, 0, UART_BUFFER);
 
+    sds011_write_state(data, WORK_STATE);
+    vTaskDelay(pdMS_TO_TICKS(CONFIG_SENSORS_SDS011_WARM_UP * 1000));
+
     if (sds011_read_reporting_mode(data, &reporting_mode) != ESP_OK) {
         ESP_LOGE(TAG, "Unable to read SDS011 reporting mode! Commiting suicide...");
         return;
@@ -151,8 +148,6 @@ void sds011_task(void *pvParameters) {
     }
 
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(CONFIG_SENSORS_SDS011_SLEEP_PERIOD * 60 * 1000));
-
         ESP_LOGI(TAG, "Waking up SDS011");
         sds011_write_state(data, WORK_STATE);
 
@@ -188,5 +183,7 @@ void sds011_task(void *pvParameters) {
 
             xSemaphoreGive(data_mutex);
         }
+
+        vTaskDelay(pdMS_TO_TICKS(CONFIG_SENSORS_SDS011_SLEEP_PERIOD * 60 * 1000));
     }
 }

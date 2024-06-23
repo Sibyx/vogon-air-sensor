@@ -1,0 +1,1 @@
+_Noreturn void sync_task(void *pvParameters);

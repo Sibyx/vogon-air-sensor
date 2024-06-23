@@ -1,0 +1,7 @@
+menu "Sync Configuration"
+    config SYNC_PERIOD
+        int "SYNC: Synchronization period (min)"
+        default 5
+        help
+            Synchronization period length.
+endmenu
