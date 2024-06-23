@@ -8,9 +8,6 @@
 #include "esp_log.h"
 #include "shared.h"
 
-#define WIFI_SSID "VogonMothership"
-#define WIFI_PASS "DontPanic!42"
-#define MQTT_BROKER_URI "mqtt://192.168.0.1"
 #define MAC_LEN 18
 #define TOPIC_LEN 100
 
@@ -71,7 +68,7 @@ static void publish(esp_mqtt_client_handle_t *client, const uint16_t sensor, con
     cJSON_AddNumberToObject(root, "value", value);
 
     char *message = cJSON_Print(root);
-    snprintf(topic, sizeof(topic), "%s/raw", mac_address);
+    snprintf(topic, sizeof(topic), "vogonair/%s/raw", mac_address);
 
     if (message) {
         esp_mqtt_client_publish(*client, topic, message, 0, 1, 0);
@@ -94,15 +91,15 @@ _Noreturn void sync_task(void *pvParameters) {
 
     wifi_config_t wifi_config = {
             .sta = {
-                    .ssid = WIFI_SSID,
-                    .password = WIFI_PASS,
+                    .ssid = CONFIG_SYNC_WIFI_SSID,
+                    .password = CONFIG_SYNC_WIFI_PASSWORD,
             },
     };
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
 
     esp_mqtt_client_config_t mqtt_cfg = {
-            .broker.address.uri = MQTT_BROKER_URI,
+            .broker.address.uri = CONFIG_SYNC_MQTT_BROKER,
     };
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
     ESP_ERROR_CHECK(esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client));
